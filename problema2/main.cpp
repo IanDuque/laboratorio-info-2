@@ -294,6 +294,135 @@ char *codificar(char * cadena, int tam_cadena, int n)
     return codificado;
 }
 
+void usuario()
+{
+    try
+    {
+        data_in.close();
+
+        data_in.open("users.txt", ios::in | ios::out | ios::app);
+
+        if(! data_in.is_open()) //se verifica que esté abierto correctamente
+            throw '1';
+
+        string cedula,clave,linea,aux,saldo;
+
+        int opcion = 0,tam_saldo = 0, saldo_int;
+
+
+        cout<<endl<<"Ingresando como usuario..."<<endl<<endl<<"Ingrese su cedula: ";
+        cin >> cedula;
+
+        for(int i = 0; getline(data_in,linea) ; i++)
+        {
+            aux = decodificar(&linea[0],80,semilla); // se decodifica la cedula
+
+            if(comparar_strings(aux,cedula,10)) // se valida que la cedula exista
+            {
+                cout<<endl<<"Ingrese su clave: ";
+                cin>> clave;
+
+                aux = decodificar(&linea[80],32,semilla); // se decodifica la clave
+
+                if(comparar_strings(aux,clave,4))
+                {
+
+                    cout<<"Ingreso exitoso..."<<endl;
+
+                    tam_saldo = linea.size() - 112;
+
+                    saldo = decodificar(&linea[112],tam_saldo,semilla);
+
+                    saldo_int = stoi(saldo);
+
+                    saldo_int -= 1000; // se retira comision
+
+                    do
+                    {
+
+                        cout<<endl<<"Seleccione una opcion: \n1. Retirar dinero \n2. Consultar saldo \n3. Salir \nOpcion: ";
+                        cin>>opcion;
+
+
+                        switch(opcion)
+                        {
+                        case 1:
+                        {
+                            if(data_in.is_open())
+                                data_in.close(); // se cierra para abrir en modo escritura
+
+                            retirar_dinero(&saldo_int); // se retira el saldo
+
+                            data_in.open("users.txt", ios::in | ios::app);
+
+                            fstream copia; // se crea un archivo copia para editar linea especifica
+                            copia.open("copia.txt", ios::out | ios::app);
+
+                            if(! copia.is_open())
+                                throw '2';
+
+                            aux = to_string(saldo_int); // se convierte ese saldo en string
+
+                            copia.write(&linea[0],linea.size()-tam_saldo); // se copia la linea del usuario actual sin su saldo anterior
+                            copia.write(codificar(&aux[0],aux.size(),semilla),aux.size()*8); //se copia el saldo actual
+                            copia.put('\n');
+
+                            for(int u = 0; getline(data_in,linea);u++)
+                            {
+                                if(u == i) // si la linea actual es igual a la del usuario en el archivo original se omite por que ya esta copiada
+                                    continue;
+                                copia.write(&linea[0],linea.size());
+                                copia.put('\n');
+
+                            }
+                            copia.close();
+                            data_in.close();
+
+                            remove("users.txt"); // se borra el anterior
+
+                            rename("copia.txt","users.txt"); // se cambia el nombre de la copia
+
+                            break;
+                        }
+                        case 2:
+                            cout<<endl<<"Tu saldo es: "<<saldo_int<<endl<<endl; break;
+
+                        case 3: break;
+
+                        default:
+                            cout<<endl<<"Ingresaste una opcion invalida"<<endl; break;
+                        }
+                    }while(opcion != 3);
+                }
+
+                else
+                    cout<<"Clave INCORRECTA. Intentelo nuevamente"<<endl;
+
+                if(data_in.is_open())
+                    data_in.close();
+
+                return;
+            }
+        }
+
+        if(data_in.is_open())
+            data_in.close();
+
+        cout<<endl<<"No se encotro la cedula digitada, intentelo nuevamente"<<endl;
+
+    }catch(char err)
+    {
+        cout<<endl<<"se ha producido un error al abrir el archivo ";
+        if(err == '1')
+            cout<<"users.txt";
+        else
+            cout<<"copia.txt";
+
+        cout<<endl;
+    }
+
+}
+
 int main()
 {
     int opcion = 0;
@@ -307,7 +436,7 @@ int main()
         {
         case 1: //admin(); break;
 
-        case 2: //usuario(); break;
+        case 2: usuario(); break;
 
         case 3: cout << "Muchas gracias por usar nuestro servicio" << endl << endl;
                 break;
