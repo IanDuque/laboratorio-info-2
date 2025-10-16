@@ -423,6 +423,16 @@ void usuario()
 
 }
 
+int contar_caracteres(char *cadena)
+{
+    int cont = 0;
+
+    for (int i = 0; cadena[i] != 0 ; i++)
+        cont++;
+
+    return cont;
+}
+
 int main()
 {
     int opcion = 0;
