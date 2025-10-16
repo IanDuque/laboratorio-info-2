@@ -2,7 +2,6 @@
 #include <fstream>
 #include <math.h>
 #include <string>
-#include <string.h>
 using namespace std;
 
 //en esta parte se hace la definición de las funciones que usaremos mas adelante.
@@ -433,6 +432,170 @@ int contar_caracteres(char *cadena)
     return cont;
 }
 
+void admin()
+{
+    try
+    {
+        data_in.open("sudo.txt", ios::in | ios::out | ios::app);
+
+        if(! data_in.is_open())
+            throw '1';
+
+        char clave_ingresada[30], *clave_real = new char[240];
+        bool clave_valida = false;
+        int tam_clave = 0;
+
+        data_in.seekp(0);
+
+        string linea;
+
+        if(getline(data_in,linea)) // se verifica si existe algun caracter dentro del archivo sudo
+        {
+            cout << endl << "Ingrese su clave: ";
+            cin >> clave_ingresada;
+
+            tam_clave = contar_caracteres(clave_ingresada);
+
+            clave_real = decodificar(&linea[0],linea.size(),semilla);
+
+            for(int i = 0; i < tam_clave ; i++)
+            {
+                if(tam_clave != linea.size()/8)
+                    break;
+
+                if(clave_ingresada[i] != clave_real[i]) // se comprueba cada posicion de la clave original con la que se ingresó
+                    break;
+
+                else
+                    clave_valida = true;
+            }
+
+            if(clave_valida)
+            {
+                data_in.close();
+
+                data_in.open("users.txt", ios::out | ios::app);
+
+                if(! data_in.is_open()) // error al abrir el archivo de escritura
+                    throw '2';
+
+                string cedula,saldo,clave;
+                cout<<endl<<"La clave es CORRECTA. Ingresando al sistema..."<<endl<<endl<<"Ingresa los datos del nuevo usuario: "<<endl;
+
+                // se ingresa a cada uno de los datos y se hace su respectiva verificacion para cada uno de ellos
+                do
+                {
+                    cout<<"Cedula (ingrese 10 digitos): ";
+                    cin>>cedula;
+
+                    for(int i = 0; i < cedula.size(); i++)
+                    {
+                        if(!(cedula[i] >= 48 and cedula[i] <= 57)) // si se ingresó algun caracter invalido
+                        {
+                            cedula = "0";
+                            break;
+                        }
+                    }
+
+                }while(cedula.size() != 10);
+
+                do
+                {
+                    cout<<"Clave (Ingrese solo 4 digitos): ";
+                    cin>>clave;
+
+                    if(clave.size() != 4)
+                        continue;
+
+                    for(int i = 0; i < clave.size(); i++)
+                    {
+                        if(!(clave[i] >= 48 and clave[i] <= 57)) // si se ingresó algun caracter invalido
+                        {
+                            clave = "";
+                            break;
+                        }
+                    }
+
+                }while(clave.size() != 4);
+
+                do
+                {
+                    cout<<"Saldo (ingrese solo digitos): ";
+                    cin>>saldo;
+
+                    for(int i = 0; i < saldo.size(); i++)
+                    {
+                        if(!(saldo[i] >= 48 and saldo[i] <= 57)) // si se ingresó algun caracter invalido
+                        {
+                            saldo = "";
+                            break;
+                        }
+                    }
+
+                }while(saldo == "");
+
+
+                // se escribe cada uno de los datos del usuario
+                data_in.write(codificar(&cedula[0],10,semilla),80);
+                data_in.write(codificar(&clave[0],4,semilla),32);
+                data_in.write(codificar(&saldo[0],saldo.size(),semilla),saldo.size()*8);
+                data_in.put('\n');
+
+                data_in.close();
+
+                cout<<endl<<"Se ha creado el usuario CORRECTAMENTE"<<endl;
+
+                return;
+
+
+            }
+
+            else
+            {
+                cout<<endl<<"La clave ingresada es INCORRECTA. Intentelo de nuevo."<< endl;
+                data_in.close();
+
+                delete[] clave_real;
+                return;
+
+            }
+        }
+
+        else // en caso que no exista el usuario administrador
+        {
+            if(data_in.is_open())
+                data_in.close();
+
+            data_in.open("sudo.txt", ios::out | ios::app);
+
+            if(! data_in.is_open())
+                throw '2';
+
+            cout<<endl<<"NO HAY USUARIO ADMINISTRADOR REGISTRADO" <<endl<< "Ingrese una clave para el admin: ";
+            cin>>clave_ingresada;
+
+            tam_clave = contar_caracteres(clave_ingresada);
+
+            linea = codificar(clave_ingresada, tam_clave, semilla);
+
+            data_in.write(linea.c_str(),tam_clave*8); // se codifica la clave ingresada y se ingresa en el archivo
+            data_in.put('\n');
+
+
+            cout<<endl<<"Se ha guardado el nuevo admimistrador."<<endl<<endl;
+            data_in.close();
+
+            delete[] clave_real;
+            return;
+        }
+    }catch(char err){
+        if(err == '1')
+            cout<<endl<<"Se ha producido un error al querer leer el archivo";
+        else
+            cout<<endl<<"Se ha producido un error al querer escribir en el archivo";
+    }
+}
+
 int main()
 {
     int opcion = 0;
@@ -444,7 +607,7 @@ int main()
 
         switch(opcion)
         {
-        case 1: //admin(); break;
+        case 1: admin(); break;
 
         case 2: usuario(); break;
 
